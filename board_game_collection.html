@@ -1,0 +1,901 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Board Game Collection Manager</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            padding: 30px;
+            background: #f8f9fa;
+        }
+        
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        
+        .stat-card h3 {
+            color: #667eea;
+            font-size: 2em;
+            margin-bottom: 5px;
+        }
+        
+        .stat-card p {
+            color: #666;
+            font-size: 0.9em;
+        }
+        
+        .controls {
+            padding: 20px 30px;
+            background: white;
+            border-bottom: 1px solid #e0e0e0;
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        
+        .search-box {
+            flex: 1;
+            min-width: 250px;
+            padding: 12px 20px;
+            border: 2px solid #e0e0e0;
+            border-radius: 25px;
+            font-size: 1em;
+            transition: border-color 0.3s;
+        }
+        
+        .search-box:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .filter-group {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        
+        .filter-group label {
+            font-weight: 600;
+            color: #666;
+        }
+        
+        .filter-group select {
+            padding: 8px 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            font-size: 0.9em;
+        }
+        
+        .btn {
+            padding: 10px 20px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: background 0.3s;
+        }
+        
+        .btn:hover {
+            background: #5568d3;
+        }
+        
+        .table-container {
+            padding: 30px;
+            overflow-x: auto;
+            max-height: 600px;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+        }
+        
+        th {
+            background: #667eea;
+            color: white;
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+            position: sticky;
+            top: 0;
+            cursor: pointer;
+            user-select: none;
+            z-index: 10;
+        }
+        
+        th:hover {
+            background: #5568d3;
+        }
+        
+        td {
+            padding: 12px 15px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        tr:hover {
+            background: #f8f9fa;
+        }
+        
+        .missing {
+            color: #e74c3c;
+            font-style: italic;
+        }
+        
+        .price {
+            font-weight: 600;
+            color: #667eea;
+        }
+        
+        .tag {
+            display: inline-block;
+            padding: 4px 10px;
+            background: #27ae60;
+            color: white;
+            border-radius: 12px;
+            font-size: 0.85em;
+        }
+        
+        .tag.incomplete {
+            background: #e74c3c;
+        }
+        
+        .sort-icon {
+            margin-left: 5px;
+            font-size: 0.8em;
+        }
+        
+        .showing-count {
+            padding: 10px 30px;
+            background: #f8f9fa;
+            color: #666;
+            font-size: 0.9em;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎲 Board Game Collection</h1>
+            <p>Your comprehensive game library manager</p>
+        </div>
+        
+        <div class="stats">
+            <div class="stat-card">
+                <h3 id="totalGames">0</h3>
+                <p>Total Games</p>
+            </div>
+            <div class="stat-card">
+                <h3 id="completeGames">0</h3>
+                <p>Complete Data</p>
+            </div>
+            <div class="stat-card">
+                <h3 id="missingData">0</h3>
+                <p>Missing Data</p>
+            </div>
+            <div class="stat-card">
+                <h3 id="totalValue">£0</h3>
+                <p>Estimated Value</p>
+            </div>
+        </div>
+        
+        <div class="controls">
+            <input type="text" class="search-box" id="searchBox" placeholder="Search games...">
+            
+            <div class="filter-group">
+                <label>Players:</label>
+                <select id="playerFilter">
+                    <option value="">All</option>
+                    <option value="2">2 Players</option>
+                    <option value="3-4">3-4 Players</option>
+                    <option value="5+">5+ Players</option>
+                </select>
+            </div>
+            
+            <div class="filter-group">
+                <label>Data:</label>
+                <select id="dataFilter">
+                    <option value="all">All Games</option>
+                    <option value="complete">Complete Data</option>
+                    <option value="incomplete">Missing Data</option>
+                </select>
+            </div>
+            
+            <button class="btn" onclick="resetFilters()">Reset</button>
+        </div>
+        
+        <div class="showing-count" id="showingCount">Showing 0 of 0 games</div>
+        
+        <div class="table-container">
+            <table id="gameTable">
+                <thead>
+                    <tr>
+                        <th onclick="sortTable(0)">Name <span class="sort-icon">↕</span></th>
+                        <th onclick="sortTable(1)">Players <span class="sort-icon">↕</span></th>
+                        <th onclick="sortTable(2)">Time (min) <span class="sort-icon">↕</span></th>
+                        <th onclick="sortTable(3)">Year <span class="sort-icon">↕</span></th>
+                        <th onclick="sortTable(4)">Price <span class="sort-icon">↕</span></th>
+                        <th onclick="sortTable(5)">Status <span class="sort-icon">↕</span></th>
+                    </tr>
+                </thead>
+                <tbody id="gameTableBody">
+                </tbody>
+            </table>
+        </div>
+    </div>
+    
+    <script>
+        // CSV data embedded directly
+        const csvData = `Name,Number of players,Playing Time,Year Published,Estimate Valued
+11 nimmt,2 to 7,30,2010,£9.03
+18 Chesapeake,2 to 6,180,2019,£90.27
+"6 nimmt!, Deutscher Spielepreis 1994",2 to 10,45,1994,£18.50
+6-Tage Rennen,3 to 8,60,1986,£16.34
+7 Wonders,3 to 7,40,2010,£19.98
+Abenteuer Menschheit,3 to 4,75,2002,£14.74
+Adel verpflichtet,2 to 5,60,1990,£40.13
+Age of Empires III: The Age of Discovery,2 to 6,120,2008,£36.87
+Age of Industry,2 to 5,120,2010,£42.17
+Age Of Steam,1 to 6,120,2002,£50.00
+Agricola,1 to 5,120,2007,£37.85
+Agricola All Creatures Big And Small,2,30,2012,£15.00
+Agricola: Farmers Of The Moor,1 to 5,120,2009,£36.85
+al parlamento,3 to 6,90,1982,£14.68
+Alexander der Grosse,2 to 6,180,1999,£14.74
+Alhambra,2 to 6,60,2003,£18.42
+Amigo 5730 - Quo Vadis,3 to 5,45,2010,£14.73
+"Amulett, Das",3 to 6,120,2001,£14.74
+Antics,2 to 4,60,2010,£5.15
+Antike,2 to 6,120,2005,£29.49
+At The Gates of Loyang,1 to 4,90,2009,£44.59
+attandarra,2 to 4,60,2009,£33.16
+Attika,2 to 4,60,2003,£16.82
+Auf den Spuren von Marco Polo Deutscher Spielepreis 2015,2 to 4,60,2015,£36.87
+Augsburg By Ravensburger Alea *** Excellent Condition *** 100% Complete,2 to 4,90,1999,£17.48
+Ausgebremst Kaufen,2 to 4,45,2009,£14.74
+automobile,3 to 5,120,2009,£35.00
+Automobiles ,2 to 5,45,2015,£73.06
+Azul,2 to 4,30,2017,£10.68
+Barcelona,2 to 5,75,2005,£26.53
+Bazaar,2 to 6,45,1967,£18.41
+Bazaar,2 to 6,45,1967,£18.43
+bezique,2,30,1900s,£9.97
+Big Boggle,2 to 6,30,1979,£12.35
+Billabong,2 to 4,30,2002,£30.00
+Biosphere,2 to 4,90,2017,£18.43
+Bison: Thunder On The Prairie,2 to 4,90,2006,£14.73
+blockade,2,30,1975,£11.96
+Blood Royale Box Workshop Complete By Vg,3 to 6,240,1987,£15.45
+Blox,2 to 4,45,2008,£14.74
+Bolide,2 to 8,120,2005,£15.70
+Brass,2 to 4,180,2007,£18.02
+Breaking Away,2 to 9,80,1991,£20.00
+Can't Stop,2 to 4,30,1980,£25.78
+Canasta Caliente,2 to 6,75,2000,£13.53
+Capitol - Schmidt Spiele,2 to 4,60,2001,£14.74
+"Carabande 2x, Sonderpreis Spiel des Jahres 1996",2 to 8,30,1996,£34.03
+Carabande Action Set,2 to 8,20,1997,£12.52
+Carcassonne,2 to 5,45,2001,£12.98
+"Carcassonne, Die Jager & Sammler",2 to 5,45,2002,£19.31
+Carolus Magnus,2 to 4,60,2000,£51.60
+Cartagena - Flucht aus der Festung,2 to 5,30,2000,£25.79
+Cat in the Box: Deluxe Edition,2 to 5,30,2022,£20.00
+Catan Histories: Settlers of America Trails to Rails,3 to 4,120,2016,£31.67
+Catan Struggle For Rome,3 to 4,90,2006,£42.41
+Cavum,2 to 4,120,2008,£14.74
+Caylus Magna Carta,2 to 4,60,2007,£21.85
+Chase,2 to 6,30,1980,£5.13
+Circus Flohcati,2 to 5,15,1998,£22.11
+CITY TYCOON,2 to 5,75,2011,£14.74
+Clans,2 to 4,30,2002,£14.74
+Cloud 9 The Daring Of Ups And Downs Out Box New By,2 to 6,30,2000,£27.62
+Code 777,2 to 5,30,1985,£16.25
+Codenames: Duet,2+,15,2017,£10.10
+Colonial: Europes Empires Overseas,2 to 6,120,2011,£29.95
+Colors De,2 to 6,20,2008,£4.13
+Colt Express,2 to 6,40,2014,£14.98
+Confucius,3 to 5,120,2008,£19.95
+conquest metal pieces,,,1980,£24.30
+Corner,2,20,1999,£7.72
+Corona,2 to 10,45,1974,£44.95
+coup,2 to 6,15,2012,£8.09
+Crazy Rally,2 to 6,30,1995,£10.87
+das regeln wir schon,3 to 5,90,1994,£20.00
+David & Goliath,3 to 6,20,1974,£16.81
+Destino Spear Spiele,2 to 4,60,1982,£48.98
+Diamonds Club,2 to 5,90,2004,£67.46
+Dice Manor Board Game,2 to 4,60,2023,£29.22
+DIE BOSSE - WER MACHT DEN MEISTEN PROFIT?,2 to 6,60,1991,£14.73
+DIE BOSSE - WER MACHT DEN MEISTEN PROFIT?,2 to 6,60,1991,£14.74
+Die Brucken von Shangrila,3 to 4,60,2003,£45.00
+Die Burgen von Burgund,2 to 4,90,2011,£14.74
+Die Fursten von Florenz,3 to 5,75,2000,£14.74
+Die Handler,2 to 4,90,1999,£29.47
+Die Macher,3 to 5,240,1997,£24.95
+dingbats accessory pack,2 to 6,,1988,£6.96
+Doctor Who: The Game Of Time And Space,2 to 6,120,1980,£14.99
+Dominant Species,2 to 6,240,2010,£29.48
+Domination,2 to 4,45,1982,£11.12
+Doolittle & Waite Adult Of Negotiation English Sealed New Box,3 to 6,60,1986,£7.73
+Downforce New Iello High Racing,2 to 6,45,2017,£32.96
+Dungeon Lords,2 to 4,90,2009,£14.00
+DVONN,2,30,2001,£15.84
+"Edel, Stein & Reich. Strategiespiel. Von Alea",3 to 5,75,2003,£14.74
+Einfach Genial,1 to 4,45,2004,£16.64
+Einfach GENIAL - ReiseEdition ,2,30,2006,£10.00
+El Caballero,2 to 4,90,1998,£14.74
+El Grande (2023 Reprint),2 to 5,90,1995,£14.74
+Elasund - Die erste Stadt,2 to 4,60,2005,£20.01
+Elfinwerks Comuni,2 to 4,90,2008,£18.43
+"Euphrat & Tigris, Deutscher Spielepreis 1998",2 to 4,90,1997,£18.42
+Europa,2 to 4,180,1996,£8.39
+Everdell,1 to 4,60,2022,£41.51
+Evo,3 to 5,90,2001,£21.37
+Executive Decision ,2 to 6,90,1971,£10.00
+Fabled Fruit,2 to 5,25,2017,£20.63
+Fabrikmanager,2 to 5,60,2009,£21.97
+Fairy Tale Juego De Cartas Edge,2 to 5,30,2004,£14.74
+falsche fuffziger,3 to 6,30,1983,£14.75
+Family Business,2 to 6,30,1989,£28.48
+Farfalia,2 to 4,15,2007,£7.73
+Farfalia,2 to 4,15,2007,£7.73
+Favoriten,2 to 5,60,1989,£7.49
+Finstere Flure,2 to 7,60,2003,£14.74
+First Sparks,2 to 6,60,2011,£20.00
+Fische Fluppen Frikadellen - Variante C,2 to 5,60,2002,£14.74
+"Fits, 2x",1 to 8,45,2009,£13.99
+Five Tribes,2 to 4,50,2014,£25.80
+Flamme Rouge,2 to 4,45,2016,£22.46
+Flamme Rouge Peloton Expansion Board Game-,2 to 6,45,2017,£28.91
+Flaschenteufel Gw148c,2 to 4,30,2000,£28.15
+Flash Point: Fire Rescue,2 to 6,45,2011,£14.96
+Flick em Up!,2 to 8,45,2015,£31.33
+Flussfieber,2 to 5,30,2008,£15.00
+Flusspiraten ,3 to 6,90,1990,£45.00
+Food Chain Magnate,2 to 5,240,2015,£69.28
+For Sale,3 to 6,30,2008,£16.96
+Formula D Brand New & Sealed,2 to 10,60,2008,£28.84
+Formula De Acheter Sur,2 to 10,120,1991,£50.00
+Formula De Mini,2 to 6,45,2002,£50.00
+Forum Romanum,2 to 6,45,1988,£22.66
+Free Ride En De 2f Libre Tour,3 to 5,90,2005,£49.59
+fresh fish,2 to 5,45,1997,£54.13
+Frischfleisch,2 to 6,90,1999,£40.00
+FTW?!,2 to 6,25,2023,£16.88
+Funkenschlag,2 to 6,240,2009,£16.52
+Fx Schmid Laska Mit,2,20,1985,£9.58
+Galaxy Trucker,2 to 4,240,2007,£16.57
+Galaxy Trucker: The Big Expansion,2 to 5,90,2008,£42.38
+Gargon German Language Independent English Rules Included,2 to 4,45,1999,£9.97
+Geschenkt (No Thanks),3 to 5,20,2005,£15.00
+Gheos,2 to 4,30,2006,£14.73
+Giganten Boardgame Wilko Manz,3 to 4,70,1999,£17.60
+GIPF,2,45,1997,£24.96
+GIPF Project: PUNCT,2,40,2005,£25.79
+GIPF Project: TZAAR,2,30,2008,£14.74
+Gipsy King ,2 to 5,30,2007,£17.72
+Glen More,2 to 5,60,2010,£29.48
+Gloria Mundi Rio Grande S Abacusspiele,2 to 5,90,2005,£16.58
+Goa,2 to 4,90,2004,£40.00
+Goldland Gold Sieber New ***,2 to 4,60,1994,£14.74
+Graenaland,3 to 5,90,2006,£25.00
+Grand National Derby,2 to 8,45,1975,£36.48
+Great Western Trail,2 to 4,100,2016,£27.63
+Greed Card Game,2 to 5,30,2014,£11.04
+Hamburgum,2 to 5,90,2007,£19.95
+Hameln,3 to 5,60,2006,£36.86
+Hansa,2 to 4,60,2004,£31.59
+Hare & Tortoise,2 to 6,45,1976,£10.31
+Hattrick,4 to 6,30,1995,£5.39
+Heat: Pedal to the Metal,3 to 5,60,2022,£38.95
+Heckmeck am Bratwurmeck (Pickomino),2 to 7,30,2005,£10.53
+Hegemony: Lead Your Class To Victory Unique Asymmetric Card Driven Game Political Economic Board Game Ages 14 2-4 Players,2 to 4,180,2023,£47.91
+Heidelberger Spieleverlag HEI00159 - Planet Steam,2 to 5,120,2008,£25.79
+High society,3 to 5,20,1995,£14.99
+Himalaya,3 to 4,60,2002,£19.53
+Hive,2,20,2005,£13.26
+Homas Tour,2 to 5,60,1979,£11.93
+Hornochsen,2 to 6,30,1998,£9.98
+Hyle7,2 to 4,30,2008,£14.75
+Il Principe,2 to 5,60,2005,£14.74
+Industria Board Gamefamily Fun Strategy Game Industrial Epic 3 To 4 Players,3 to 4,60,2003,£14.73
+Isle of Skye: From Chieftain to King,3 to 5,60,2015,£11.79
+ITC / International Trade Company,3 to 5,90,2001,£14.74
+Its Mine,3 to 5,30,1998,£15.00
+Jantaris,2 to 4,45,2004,£14.73
+Janus,2,30,1979,£39.92
+Jarnac !,2 to 6,45,1987,£21.46
+Java,2 to 4,90,2000,£12.16
+Jockey,2 to 6,45,1973,£4.99
+Jorvik Pegasus Kaufen,2 to 5,90,2016,£23.96
+Kaigan,3 to 4,90,2009,£7.37
+Kaliko,2 to 6,45,2004,£14.73
+Kangaroo,2 to 4,20,1980,£11.46
+Khronos,2 to 5,90,2006,£24.99
+kings + castles,2 to 4,90,2000,£22.13
+Koalition German 1st Edition Salagames Hartmut Witt Card Game New,3 to 6,45,2002,£14.74
+Kogge,2 to 4,90,2003,£40.00
+Konig der Elfen,2 to 6,60,1999,£5.00
+Kremlin,3 to 6,90,1986,£33.53
+KRIEG UND FRIEDEN,3 to 4,90,1999,£15.00
+Krone & Schwert,2 to 5,60,2002,£14.73
+Kunst Stucke,2 to 5,60,1995,£10.00
+La Citta,2 to 5,150,2000,£23.69
+Lama,2 to 6,20,2019,£8.93
+Las Vegas,2 to 5,30,2012,£90.27
+Last train to wensleydale,3 to 4,120,2009,£18.42
+League Of Six Cge Czech S Edition Vladimir Suchy Complete,2 to 5,90,2012,£22.09
+Lewis & Clark,1 to 5,120,2013,£9.77
+Liars Dice ,2 to 6,20,1987,£13.26
+Long Shot: The Dice Game,2 to 6,25,2022,£19.96
+"Louis XIV, Deutscher Spielepreis 2005",2 to 4,100,2005,£19.99
+Lowendynastie,2 to 4,60,1992,£8.80
+Lowenherz,2 to 4,90,1997,£36.85
+"Maestro Leonardo, Brettspiel",2 to 5,90,2006,£17.97
+Magellan Board Game German Edition English Rules Provided New In Shrink,3 to 6,45,2002,£14.73
+Magic Maze,2 to 8,15,2017,£16.95
+Maglev Metro Black,1 to 4,90,2023,£29.47
+Magna Grecia,2 to 4,90,2003,£29.95
+Manager Hexagames,2 to 6,90,1990,£14.74
+Mandala,2,20,2019,£14.83
+Maya,3 to 5,75,2003,£11.30
+Mayfair Games Steam Map Expansion #5 Boxcar Mfg45615,2 to 6,120,2009,£20.63
+Medina The City In The Desert,2 to 4,60,2001,£44.23
+Mega-spass Mit Mini-Regeln,2 to 6,30,2000,£9.43
+Members only - Willkommen Im Club,3 to 5,60,1996,£14.74
+Meuterer,3 to 4,60,2000,£5.00
+Mexica,2 to 4,75,2002,£14.74
+MicroMacro: Crime City: All In,2 to 4,30,2021,£13.37
+Millionen Von Schwalben Fata Morgana,3 to 6,120,2006,£25.00
+Millionenspiel,3 to 5,45,1982,£14.55
+Modern Art,3 to 5,45,1992,£30.00
+money!,2 to 6,45,1999,£14.73
+Morgenland,3 to 5,60,2000,£15.79
+Mosaix,1 to 4,20,2009,£10.00
+Moskito Was Sticht?,3 to 4,60,1993,£10.00
+MotorChamp,2 to 8,120,2000,£18.43
+MOW* Board Game!,2 to 8,30,2008,£14.74
+Mull + Money,2 to 4,60,2001,£29.51
+Muscat,3 to 5,90,1995,£18.00
+Nations,1 to 5,40,2013,£44.22
+Navegador,2 to 5,90,2010,£39.53
+Neuland,2 to 4,100,2008,£14.74
+New Hexagames German Cardgame Koalition 2nd Edition,3 to 6,45,2005,£14.73
+Next Station London,1 to 4,25,2022,£14.73
+Nicht Die Bohne,3 to 6,30,1999,£42.37
+Nieuw Amsterdam,2 to 5,120,2012,£14.74
+Noch Mal,1 to 6,20,2016,£9.26
+Notre Dame De,2 to 5,75,2007,£14.74
+Nova Luna,1 to 4,30,2019,£19.91
+Nucleum,1 to 4,120,2023,£33.55
+Nucleum: Australia,1 to 4,150,2024,£22.11
+Null & Nichtig / Null & Void,3 to 5,30,2006,£12.62
+Obsession,2 to 4,90,2020,£59.85
+Obsession: Upstairs Downstairs,1 to 6,90,2020,£38.47
+Oddville,2 to 4,60,2012,£12.89
+Ohne Furcht Und Adel Sin,2 to 7,60,2000,£10.00
+Oltre Mare,2 to 5,60,2005,£14.95
+On The Underground ,2 to 5,60,2006,£12.54
+One More Barrel,2 to 5,60,2007,£17.35
+Ora & Labora,1 to 4,180,2011,£29.45
+pagode,2,30,2014,£15.14
+Pan Am,2 to 4,60,2020,£12.61
+Panamax,2 to 4,100,2014,£57.48
+Pandemic,2 to 4,45,2007,£7.17
+Pandemic Legacy: Season 0,2 to 4,60,2019,£28.18
+"Pandemic: On The Brink, 1st Ed.",2 to 5,45,2009,£16.91
+Paris: La Cite De La Lumiere,2,30,2019,£13.26
+Patchwork,2,30,2014,£10.00
+Phalanx Games Vor Dem Wind Kaufen,2 to 4,120,2007,£18.38
+Phoenicia,2 to 5,60,2007,£6.77
+Poker Whitman Boardgame Temptation Poker Box Vintage New Card Rare,2 to 8,60,1982,£8.84
+Pole Position Car Racing Game Piatnik,2 to 6,60,1985,£14.74
+Ponte Del Diavolo,2,30,2007,£11.49
+Port Royal Card Game,2 to 5,50,2014,£14.97
+Power Grid: Deluxe,2 to 6,120,2014,£29.96
+Power Struggle,2 to 5,120,2009,£13.97
+Powerboats,2 to 6,60,2008,£22.93
+Primus Inter Pares Like,3 to 6,90,2003,£22.55
+Prince from Machu Picchu,2 to 4,60,2005,£27.39
+Project L ,1 to 4,30,2023,£22.87
+Pueblo,2 to 4,60,2002,£26.12
+Puerto Rico,3 to 5,150,2002,£20.46
+Qwirkle,2 to 4,45,2006,£11.43
+Qwixx,2 to 5,15,2012,£16.76
+RA,3 to 5,60,1999,£35.00
+Railroad Dice,2 to 4,90,2003,£10.31
+Railroad Dice 2,2 to 4,90,2007,£22.34
+Raja,2 to 5,90,2004,£15.17
+Rallyman: GT,1 to 6,60,2018,£49.94
+Ravensburger 26363 - Verflixxt!,2 to 6,30,2005,£31.96
+Ready Set Bet,2 to 9,60,2022,£17.32
+Reef Encounter,2 to 4,120,2004,£53.43
+Rennspiel-Action,2 to 8,40,1996,£50.00
+Rette Sich Wer Kann,2 to 6,60,2002,£59.92
+Rheinlander,3 to 5,45,1999,£14.74
+Rio Grande Imperial,2 to 6,120,2006,£31.34
+Rise Of Empire. German Version. Board Game. Phalanx Games,2 to 5,240,2009,£24.23
+"Roll Through The Ages, The Bronze Age",1 to 4,45,2008,£18.41
+Royal Turf,2 to 6,60,2001,£18.11
+Rummikub,2 to 4,60,1977,£8.05
+Rummikub,2 to 4,60,1977,£8.05
+Samurai,2 to 4,60,1988,£41.33
+San Marco,3 to 4,90,2001,£23.41
+Scandaroon,2 to 4,60,2007,£4.97
+Schwarzmarkt,3 to 6,60,2008,£14.74
+Schwarzmarkt Black Market,3 to 6,45,1986,£5.00
+Scout,2 to 5,20,2021,£11.04
+Ships,2 to 4,120,2015,£25.00
+Shipyard,2 to 4,120,2009,£51.58
+shoestring racer,2 to 6,90,1983,£16.20
+Shogi,2,60,Traditional,£26.75
+Shogun,3 to 5,120,2006,£25.00
+Showbiz,3 to 6,60,1984,£7.48
+Showbiz,3 to 6,60,1984,£7.49
+Showbiz,3 to 6,60,1984,£7.49
+Showbiz,3 to 6,60,1984,£7.49
+Showbiz,2 to 8,90,1984,£20.00
+Small World,2 to 5,60,2009,£18.40
+Snow Tails,2 to 5,60,2008,£48.16
+Sopwith,2 to 6,120,1978,£26.22
+Speed Circuit,2 to 6,120,1977,£14.48
+Spyrium,2 to 5,50,2013,£11.51
+Steam,2 to 5,90,2009,£14.74
+Steam Barons,2 to 6,120,2009,£12.89
+Steam Over Holland | Gioco Da Tavolo Vendetta,2 to 5,180,2007,£80.00
+steel driver,3 to 6,60,2008,£15.23
+Stephensons Rocket,2 to 4,75,1999,£25.77
+Sticheln - Ein bestechend gutes Kartenspiel,3 to 8,30,1993,£15.00
+Stone Age,2 to 4,90,2016,£27.78
+Sunriver Boardgame Havoc The Hundred Years War,2 to 6,90,2005,£20.25
+Suzerain,2 to 6,100,1993,£15.00
+Sylla,3 to 4,90,2008,£16.21
+Tadsch Mahal,3 to 5,100,2000,£25.26
+Take it easy XXL,1 to 8,20,1998,£28.60
+Take It To The Limit! Boardgame,1 to 6,45,2006,£20.00
+Taluva,2 to 4,45,2006,£50.00
+Tara Seat of Kings,2 to 5,75,2008,£18.42
+Tash Kalar: Arena of Legends,2 to 4,30,2013,£20.00
+Tayu,2 to 4,45,1999,£60.00
+Tempvs,3 to 5,120,2006,£18.38
+Terra Mystica,2 to 5,90,2012,£22.11
+Terraforming Mars,1 to 5,120,2016,£29.44
+The Crew: The Quest For Planet Nine,2 to 5,30,2020,£7.36
+The Gallerist,2 to 4,120,2015,£51.60
+The Golden Age Canal Mania,2 to 5,120,2006,£32.00
+The Quest For El Dorado,2 to 4,45,2017,£29.33
+The White Castle,2 to 4,80,2023,£25.00
+Think Str8! Str8 Zwickau,2 to 4,60,2015,£18.00
+three kingdoms ultima,,,,£29.50
+Through the Ages: A New Story of Civilization,2 to 4,120,2015,£23.21
+Through the Desert,2 to 5,45,1998,£14.73
+Thunder Road: Vendetta,3 to 4,75,2023,£36.46
+Tikal Gesellschaftsspiel Taktik- und Strategiespiel - Spiel des Jahres 1999,2 to 4,90,1999,£15.09
+Timber,2 to 4,60,2015,£10.31
+Tinners Trail,3 to 4,60,2008,£40.00
+Tom Tube,2,30,2003,£10.00
+Torres,2 to 4,60,1999,£14.73
+Trade,2 to 4,120,1974,£7.37
+Trajan,2 to 4,120,2015,£47.16
+Trias - Life In Prehistory,2 to 5,75,2002,£15.47
+Troyes,2 to 4,90,2010,£22.15
+Turfmaster,2 to 8,75,1998,£100.00
+Tutankhamun The Treasure Of Complete,2 to 6,30,1993,£10.92
+TV Wars,3 to 4,90,1987,£20.00
+Twilight Kartenspiel Kaufen | Neu & Gebraucht,3 to 4,60,1997,£15.00
+Twixt,2,60,1972,£12.89
+Tyranno Ex,2 to 4,120,1990,£4.99
+Ultimate Railroads,1 to 4,120,2021,£47.92
+Unbekannt Huch & Friends 40074 Vasco da Gama,2 to 4,120,2009,£14.74
+und tschuss,4 to 6,20,1997,£20.00
+UR,3 to 4,60,2006,£16.96
+Urland,3 to 5,60,2001,£17.72
+Ursuppe,3 to 4,120,1997,£20.63
+Vanuatu,3 to 5,90,2011,£14.74
+Venture,2 to 6,45,1970,£13.26
+Vernissage, 3 to 5,60,1993,£24.94
+Verrater,3 to 4,60,1998,£5.00
+Villa Paletti By Bill Payne,2 to 4,30,2001,£19.91
+Vinci: The Rise & Fall Of Civilizations,3 to 6,120,1999,£26.03
+Vino,3 to 5,90,1999,£20.85
+Vintage Nib The Bucket King Board Game Alles Im Eimer German 1st Version,2 to 6,45,2002,£25.00
+Vom Kap Bis Kairo,2 to 4,30,2001,£10.00
+Warrior Knights,2 to 6,180,1985,£12.00
+Warrior Knights,2 to 6,120,2006,£29.47
+watch,2,10,1967,£7.28
+waterloo,2,180,2009,£30.00
+Whirlwind,2 to 6,120,1987,£16.60
+Whirlwind,2 to 6,120,1987,£16.60
+Wikinger,2 to 4,60,2007,£14.74
+Wildlife,2 to 6,120,2002,£10.00
+"Win, Place & Show",3 to 6,120,1966,£13.44
+Wing of War Game Mat - East Section ,2 to 8,30,2006,£25.00
+Wings Of War Deluxe Set,2 to 4,45,2007,£50.00
+Wings of War Game Mat - West Section ,2 to 8,30,2006,£25.00
+Wings Of War WW1  Sopwith CameI (Ellwood),2,30,2012,£29.95
+Wings Of War WW1 WW07i Albatros D.Va (Jentsch),2,30,2012,£50.00
+Wyatt Earp,2 to 4,60,2001,£16.92
+Yinsh,2,60,2003,£20.00
+Zatre,2 to 6,45,1990,£5.00
+Zertz Gipf Project Abstract Strategy Out Of Print Vg,2,60,2000,£17.31
+"Zhan Guo, Brettspiel",2 to 4,120,2014,£30.94
+Zug um Zug Europe,2 to 5,60,2005,£42.16`;
+
+        let allGames = [];
+        let filteredGames = [];
+        let sortColumn = -1;
+        let sortAscending = true;
+
+        // Parse CSV
+        function parseCSV(csv) {
+            const lines = csv.trim().split('\n');
+            const games = [];
+            
+            for (let i = 1; i < lines.length; i++) {
+                const line = lines[i];
+                if (!line.trim()) continue;
+                
+                // Simple CSV parser that handles quoted fields
+                const fields = [];
+                let current = '';
+                let inQuotes = false;
+                
+                for (let j = 0; j < line.length; j++) {
+                    const char = line[j];
+                    if (char === '"') {
+                        inQuotes = !inQuotes;
+                    } else if (char === ',' && !inQuotes) {
+                        fields.push(current.trim());
+                        current = '';
+                    } else {
+                        current += char;
+                    }
+                }
+                fields.push(current.trim());
+                
+                if (fields.length >= 5) {
+                    games.push({
+                        name: fields[0],
+                        players: fields[1],
+                        time: fields[2],
+                        year: fields[3],
+                        price: fields[4]
+                    });
+                }
+            }
+            return games;
+        }
+
+        // Check if game data is complete
+        function isComplete(game) {
+            return game.name && game.players && game.time && game.year && game.price;
+        }
+
+        // Parse price to number
+        function parsePrice(price) {
+            if (!price) return 0;
+            return parseFloat(price.replace(/[£$,]/g, '')) || 0;
+        }
+
+        // Get max player count from string
+        function getMaxPlayers(playersStr) {
+            if (!playersStr) return 0;
+            const match = playersStr.match(/\d+/g);
+            if (match) {
+                return Math.max(...match.map(Number));
+            }
+            return 0;
+        }
+
+        // Update statistics
+        function updateStats() {
+            const total = allGames.length;
+            const complete = allGames.filter(g => isComplete(g)).length;
+            const incomplete = total - complete;
+            const totalValue = allGames.reduce((sum, g) => sum + parsePrice(g.price), 0);
+            
+            document.getElementById('totalGames').textContent = total;
+            document.getElementById('completeGames').textContent = complete;
+            document.getElementById('missingData').textContent = incomplete;
+            document.getElementById('totalValue').textContent = '£' + totalValue.toFixed(2);
+        }
+
+        // Render table
+        function renderTable(games) {
+            const tbody = document.getElementById('gameTableBody');
+            tbody.innerHTML = '';
+            
+            games.forEach(game => {
+                const row = tbody.insertRow();
+                const complete = isComplete(game);
+                
+                // Name
+                const nameCell = row.insertCell();
+                nameCell.textContent = game.name || 'Unknown';
+                if (!game.name) nameCell.classList.add('missing');
+                
+                // Players
+                const playersCell = row.insertCell();
+                playersCell.textContent = game.players || 'N/A';
+                if (!game.players) playersCell.classList.add('missing');
+                
+                // Time
+                const timeCell = row.insertCell();
+                timeCell.textContent = game.time || 'N/A';
+                if (!game.time) timeCell.classList.add('missing');
+                
+                // Year
+                const yearCell = row.insertCell();
+                yearCell.textContent = game.year || 'N/A';
+                if (!game.year) yearCell.classList.add('missing');
+                
+                // Price
+                const priceCell = row.insertCell();
+                priceCell.className = 'price';
+                priceCell.textContent = game.price || 'N/A';
+                if (!game.price) priceCell.classList.add('missing');
+                
+                // Status
+                const statusCell = row.insertCell();
+                const tag = document.createElement('span');
+                tag.className = 'tag';
+                if (!complete) {
+                    tag.classList.add('incomplete');
+                    tag.textContent = 'Incomplete';
+                } else {
+                    tag.textContent = 'Complete';
+                }
+                statusCell.appendChild(tag);
+            });
+            
+            document.getElementById('showingCount').textContent = 
+                `Showing ${games.length} of ${allGames.length} games`;
+        }
+
+        // Filter games
+        function filterGames() {
+            const searchTerm = document.getElementById('searchBox').value.toLowerCase();
+            const playerFilter = document.getElementById('playerFilter').value;
+            const dataFilter = document.getElementById('dataFilter').value;
+            
+            filteredGames = allGames.filter(game => {
+                // Search filter
+                if (searchTerm && !game.name.toLowerCase().includes(searchTerm)) {
+                    return false;
+                }
+                
+                // Player filter
+                if (playerFilter) {
+                    const maxPlayers = getMaxPlayers(game.players);
+                    if (playerFilter === '2' && maxPlayers !== 2) return false;
+                    if (playerFilter === '3-4' && (maxPlayers < 3 || maxPlayers > 4)) return false;
+                    if (playerFilter === '5+' && maxPlayers < 5) return false;
+                }
+                
+                // Data completeness filter
+                if (dataFilter === 'complete' && !isComplete(game)) return false;
+                if (dataFilter === 'incomplete' && isComplete(game)) return false;
+                
+                return true;
+            });
+            
+            renderTable(filteredGames);
+        }
+
+        // Sort table
+        function sortTable(column) {
+            if (sortColumn === column) {
+                sortAscending = !sortAscending;
+            } else {
+                sortColumn = column;
+                sortAscending = true;
+            }
+            
+            filteredGames.sort((a, b) => {
+                let valA, valB;
+                
+                switch(column) {
+                    case 0: // Name
+                        valA = a.name || '';
+                        valB = b.name || '';
+                        break;
+                    case 1: // Players
+                        valA = getMaxPlayers(a.players);
+                        valB = getMaxPlayers(b.players);
+                        break;
+                    case 2: // Time
+                        valA = parseInt(a.time) || 0;
+                        valB = parseInt(b.time) || 0;
+                        break;
+                    case 3: // Year
+                        valA = parseInt(a.year) || 0;
+                        valB = parseInt(b.year) || 0;
+                        break;
+                    case 4: // Price
+                        valA = parsePrice(a.price);
+                        valB = parsePrice(b.price);
+                        break;
+                    case 5: // Status
+                        valA = isComplete(a) ? 1 : 0;
+                        valB = isComplete(b) ? 1 : 0;
+                        break;
+                }
+                
+                if (typeof valA === 'string') {
+                    return sortAscending ? 
+                        valA.localeCompare(valB) : 
+                        valB.localeCompare(valA);
+                } else {
+                    return sortAscending ? valA - valB : valB - valA;
+                }
+            });
+            
+            renderTable(filteredGames);
+        }
+
+        // Reset filters
+        function resetFilters() {
+            document.getElementById('searchBox').value = '';
+            document.getElementById('playerFilter').value = '';
+            document.getElementById('dataFilter').value = 'all';
+            filterGames();
+        }
+
+        // Event listeners
+        document.getElementById('searchBox').addEventListener('input', filterGames);
+        document.getElementById('playerFilter').addEventListener('change', filterGames);
+        document.getElementById('dataFilter').addEventListener('change', filterGames);
+
+        // Initialize
+        allGames = parseCSV(csvData);
+        filteredGames = [...allGames];
+        updateStats();
+        renderTable(filteredGames);
+    </script>
+</body>
+</html>
